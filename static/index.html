@@ -1,0 +1,76 @@
+<!doctype html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Chat with WebSockets</title>
+	<link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+	
+
+	<section id="chatView" class="view" data-name="chat" data-states="behind">
+
+		<div id="chatContainer"></div>
+
+		<div id="userlist"></div>
+
+		<form id="chatForm" class="highlight" autocomplete="off">
+			<div id="inputChatWrapper">
+				<input type="text" id="inputChat" disabled>
+			</div>
+			<input type="submit" value="SEND" id="submitChat" disabled>
+		</form>
+
+	</section>
+
+
+
+	<section id="connectView" class="view" data-name="connect">
+
+		<table class="centertable"><tbody><tr><td style="height: 1px; padding-top: 40px; white-space: nowrap;">
+			<a href="http://www.w3.org/html/logo/"><img src="img/html5_connectivity.svg" height=66 class="html5badge"></a>
+			<a href="http://nodejs.org"><img src="img/nodejs.png"></a>
+			<a href=""><img src="img/html5_css3_styling.svg" height=66 class="html5badge" style="padding-left: 5px; padding-right: 5px;"></a>
+			<br><br>
+		</td></tr><tr><td>
+
+			<div class="highlight">
+				<h1>Chat with WebSockets</h1>
+
+				<form id="loginForm">
+					<input type="text" id="inputNick" placeholder="Nick" name="nick" required autofocus><input type="submit" value="Log in" id="submitLogin">
+					<div id="loginErrorNode"></div>
+				</form>
+
+				<br>
+				<footer>Created by <a href="http://djazz.mine.nu/">djazz</a> - Powered by <a href="http://nodejs.org/">node.js</a>, <a href="https://github.com/einaros/ws">ws</a> and <a href="http://expressjs.com/">express</a> - <a href="https://github.com/daniel-j/node-ws-chat">Source code</a></footer>
+			</div>
+
+			<!-- To make login form appear in middle of screen -->
+			<br><br><br><br><br><br><br><br>
+
+		</td></tr></tbody></table>
+
+	</section>
+
+
+
+	<!--<script src="js/lib/require.min.js" data-main="js/main" async></script>-->
+
+	<script src="js/utils.js"></script>
+
+	<script src="js/View.js"></script>
+	<script src="js/ViewManager.js"></script>
+
+	<script src="js/LoginManager.js"></script>
+
+	<script src="js/User.js"></script>
+	<script src="js/UserlistItem.js"></script>
+	<script src="js/UserManager.js"></script>
+
+	<script src="js/ChatItem.js"></script>
+	<script src="js/ChatManager.js"></script>
+
+	<script src="js/main.js"></script>
+</body>
+</html>

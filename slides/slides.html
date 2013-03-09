@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+
+<!--
+   Google HTML5 slide template
+
+   Authors: Luke Mahé (code)
+                Marcin Wichary (code and design)
+                
+                Dominic Mazzoni (browser compatibility)
+                Charles Chen (ChromeVox support)
+
+   URL: http://code.google.com/p/html5slides/
+-->
+
+<html>
+   <head>
+      <title>Presentation</title>
+
+      <meta charset='utf-8'>
+      <script src='slides.js'></script>
+      <script src="http://localhost:8081/socket.io/socket.io.js"></script>
+      <script src="Google-HTML5-Presentation-Remote-Control/sample/google-remote-control.js"></script>
+      <script>
+      var control = new GoogleRemoteControl();
+
+      control.connect('http://localhost:8081', 10);
+      </script>
+   </head>
+   
+   <style>
+      /* Your individual styles here, or just use inline styles if that’s
+          what you want. */
+      
+      
+   </style>
+
+   <body style='display: none'>
+
+      <section class='slides layout-regular template-default'>
+         
+         <!-- Your slides (<article>s) go here. Delete or comment out the
+                slides below. -->
+            
+            
+         
+         <article class='biglogo'>
+         </article>
+
+         <article>
+            <h3>Vem är jag?</h3>
+            <!--<img src="http://www.student.bth.se/~dajg12/htmlphp/kmom01/img/daniel.jpg" align=right height=128 style="border-radius: 10px">-->
+            <p>
+               <h4>
+                  Daniel Jönsson<br>
+                  <a target="_blank" href="http://djazz.mine.nu/">http://djazz.mine.nu/</a><br>
+                  <a target="_blank" href="https://github.com/daniel-j">https://github.com/daniel-j</a><br>
+                  <a target="_blank" href="https://plus.google.com/113878221242502678865/">https://plus.google.com/113878221242502678865/</a><br>
+                  <a target="_blank" href="http://twitter.com/daniel_hede">http://twitter.com/daniel_hede</a><br>
+                  <a target="_blank" href="http://youtube.com/user/danieljhede">http://youtube.com/user/danieljhede</a><br>
+                  <a target="_blank" href="http://www.student.bth.se/~dajg12/">http://www.student.bth.se/~dajg12/</a>
+               </h4>
+               <ul>
+                  <li>Programmerat med JavaScript i 8 år</li>
+                  <li>Gillar att leka med de senaste webbteknologierna</li>
+                  <li>Självlärd hobbykodare, "mad scientist"</li>
+               </ul>
+            </p>
+         </article>
+
+         <article>
+            <h3>Ett chattprogram i JavaScript, från grunden</h3>
+            <ul>
+               <li>Demo av programmet</li>
+               <li>Kodstruktur</li>
+               <li>De olika modulerna</li>
+               <li>Ett chattprotokoll</li>
+               <li>Serversidan</li>
+               <li>Fler exempel med WebSockets &amp; HTML5</li>
+            </ul>
+         </article>
+         <article class='fill'>
+            <h3 style="padding-top: 0px; line-height: 20px">Demolänk: <a target="_blank" href="http://193.11.182.17:8080/">http://193.11.182.17:8080/</a></h3>
+            <iframe src='http://localhost:8080/' style="margin-top: 70px; height: 698px"></iframe>
+         </article>
+
+         <article>
+            <h3>Kodstruktur, objektorienterat/prototypbaserat</h3>
+            <pre>
+var UserManager = (function () {
+   'use strict';
+   
+   function UserManager() {
+      this.users = [];
+      // ...
+   }
+
+   UserManager.prototype.addUser = function (info) {
+      var user = new UserlistItem(info);
+      this.users.push(user);
+      return user;
+   }
+
+   // ...
+
+   return UserManager;
+}());
+</pre>
+         </article>
+
+         <article class="nobackground">
+            <h4 style="position: absolute; top: 0px;">Kodstruktur med exempel på arv</h4>
+            <br>
+            <pre>
+var UserlistItem = (function () { // inherits from User.. da magicks!
+   'use strict';
+
+   function UserlistItem(config) {
+      this.super = User.prototype; // super methods
+
+      // ...
+
+      this.update(config);
+   }
+   // inheritance
+   UserlistItem.prototype = Object.create(User.prototype);
+   UserlistItem.prototype.constructor = UserlistItem; // restore constructor
+
+   UserlistItem.prototype.update = function (config) {
+      // Run the super-update function
+      this.super.update.apply(this, arguments);
+
+      // do stuff specific for this userlist item...
+   }
+   return UserlistItem;
+}());
+</pre>
+         </article>
+
+         <article class="nobackground">
+            <h4 style="position: absolute; top: 0px;">Jämförelse mellan moduler i ES5 och ES6</h4>
+            <br>
+            <pre>
+// define a new type SkinnedMesh and a constructor for it
+function SkinnedMesh(geometry, materials) {
+  // call the superclass constructor
+  THREE.Mesh.call(this, geometry, materials);
+ 
+  // initialize instance properties
+  this.identityMatrix = new THREE.Matrix4();
+  this.bones = [];
+  this.boneMatrices = [];
+  ...
+};
+ 
+// inherit behavior from Mesh
+SkinnedMesh.prototype = Object.create(THREE.Mesh.prototype);
+SkinnedMesh.prototype.constructor = SkinnedMesh;
+ 
+// define an overridden update() method
+SkinnedMesh.prototype.update = function(camera) {
+  ...
+  // call base version of same method
+  THREE.Mesh.prototype.update.call(this);
+};</pre>
+         </article>
+
+         <article class="nobackground">
+            <h4 style="position: absolute; top: 0px;">Samma kod fast i ECMAScript 6</h4>
+            <br>
+            <pre>
+class SkinnedMesh extends THREE.Mesh {
+  constructor(geometry, materials) {
+    super(geometry, materials);
+ 
+    public identityMatrix = new THREE.Matrix4();
+    public bones = [];
+    public boneMatrices = [];
+    ...
+  }
+ 
+  update(camera) {
+    ...
+    super.update();
+  }
+}</pre>
+            <br>
+            <p>Källkod och exempel från<br><a href="http://wiki.ecmascript.org/doku.php?id=harmony:classes">http://wiki.ecmascript.org/doku.php?id=harmony:classes</a></p>
+         </article>
+
+         <article>
+            <h4>Kodstruktur - resurser</h4>
+            <ul>
+               <li><a target="_blank" href="http://www.2ality.com/2011/06/prototypes-as-classes.html">Prototypes as classes – an introduction to JavaScript inheritance</a></li>
+               <li>[video] <a target="_blank" href="http://www.youtube.com/watch?v=NyClWddeO_A">JavaScript inheritance: beyond the basics</a></li>
+               <li>Crockford: <a target="_blank" href="http://javascript.crockford.com/private.html">Private Members in JavaScript</a></li>
+            </ul>
+         </article>
+
+         <article>
+            <h3>De olika modulerna för chattprogrammet</h3>
+            <ul>
+               <li>main.js</li>
+               <li>ChatManager &amp; ChatItem</li>
+               <li>UserManager, UserlistItem &amp; User</li>
+               <!--<li>LoginManager</li>
+               <li>ViewManager &amp; View</li>-->
+               <li>Samt två moduler som inte är specifika ett chattprogram (LoginManager &amp; ViewManager)</li>
+            </ul>
+         </article>
+
+         <article>
+            <h4>main.js</h4>
+            <ul>
+               <li>Laddar in de andra modulerna</li>
+               <li>WebSocket-koden ligger här</li>
+               <li>Lyssnar efter meddelanden från servern, anropar metoder på modulerna t.ex. userlist.addUser och chat.addChat</li>
+            </ul>
+
+            <h4>ChatManager &amp; ChatItem</h4>
+            <ul>
+               <li>Håller reda på allt som läggs in i chattcontainern</li>
+               <li>Metoder för att lägga till chatt och konsollmeddelanden, genererar DOM-noder</li>
+               <li>Metod för att rensa alla chattmeddelanden (när användaren loggar ut)</li>
+            </ul>
+         </article>
+
+         <article>
+            <h4>UserManager, UserlistItem &amp; User</h4>
+            <ul>
+               <li>Har hand om den högra panelen med listan över anslutna användare, sorterar den efter bokstavsordning</li>
+               <li>UserManager har en get-funktion för att få ett User-objekt utifrån ett id, som t.ex. kommer från servern, som används för "User joined the room" m.m.</li>
+               <li>UserlistItem skapar en DOM-nod utifrån information som UserManager skickar till den</li>
+               <li>UserlistItem ärver från User, så de delar samma metoder. UserlistItem extendar update-metoden för att uppdatera användarnamnet i noden.</li>
+               <li>User används både i webbläsaren och som node.js-modul</li>
+            </ul>
+         </article>
+
+         <!--<article>
+            <h4>LoginManager</h4>
+            <ul>
+               <li>Denna hanterar login-formuläret, samt har en publik callback som anropas från main.js när man blir inloggad/utloggad</li>
+               <li>Har en enable/disable-metod för att aktivera/inaktivera formuläret</li>
+            </ul>
+
+            <h4>ViewManager &amp; View</h4>
+            <ul>
+               <li>Hanterar olika "fönster", såsom loginskärmen och chattfönstret</li>
+               <li>main.js har funktioner för att visa/dölja loginskärmen</li>
+               <li>Denna är egentligen inte nödvändig för ett chattprogram</li>
+               <li>Använder sig av data-attribut och CSS-klasser med node.classList</li>
+            </ul>
+
+         </article>-->
+
+         <article>
+            <h3>Ett chattprotokoll</h3>
+            <h4 style="line-height: 30px; margin: 0px; margin-top: 10px; padding: 0px;">JSON-strängar som skickas mellan klient och server</h4>
+            <ul>
+               <li>Klienten skickar sitt nick till servern, join-request</li>
+               <li>Servern kollar om nicket är upptaget, annars släpper den in användaren i chatten, join-accept</li>
+               <li>Servern skickar då användarlistan till klienten samt en join-notify till de andra</li>
+               <li>Klienten skickar keep-alive-meddelanden var 20:e sekund</li>
+               <li>Servern tar emot chattmeddelanden från klienten och broadcastar till de andra</li>
+               <li>Om en klient disconnectar skickar servern en left-notify till de andra</li>
+            </ul>
+         </article>
+
+         <article class="nobackground">
+            <h4 style="position: absolute; top: 0px">Protokollet sett från servern</h4>
+            <br>
+            <pre>
+CONNECT // New user connected to WebSocket, set up event listeners, no action
+RECIEVED: {"nick":"djazz"} // This is a valid, unused nick, for this example
+// This is the response to joining client
+SEND: {"nick": "djazz","userlist": [
+   {"nick":"mos"}, {"nick":"bobbzorzen"}, {"nick":"djazz"}
+]}
+// Tell others that a new user joined
+BROADCAST TO OTHERS: {"join": {"nick": "djazz"}}
+
+// Got a keep-alive packet from someone, "net" takes care of if user timeout
+// If the server haven't got a packet within 30s it closes the socket
+RECIEVED: {"heartbeat": 1}
+
+// Got a chat message from djazz
+RECIEVED: {"chat": "Hello world!"}
+// Send it to everyone, including to sender. Put a timestamp and sender index
+BROADCAST TO ALL: {"chat": "Hello world!",
+                   "timestamp": "2012-12-13T16:23:47.661Z", "index": 2}
+
+CLOSED SOCKET // Someone disconnected, tell others (bobbzorzen left the room)
+BROADCAST TO OTHERS: {"leave": 1}
+//The userlist array now contain mos at slot 0 and djazz at 1
+</pre>
+         </article>
+
+         <article class="nobackground">
+            <h4 style="position: absolute; top: 0px;">WebSockets på klientsidan</h4>
+            <br>
+            <pre>
+var ws;
+function wsMessage(e) {
+   var data = JSON.parse(e.data);
+   // ...
+   if (typeof data.userlist !== 'undefined') {
+      // got userlist, call users.addUser with each
+   }
+   if (typeof data.chat !== 'undefined') {
+      var timestamp = new Date(data.timestamp);
+      var user = userlist.getByIndex(data.index);
+      chat.addChat(user, utils.html2text(data.chat), timestamp);
+   }
+   // ...
+}
+login.loginAttemptCallback = function (nick) {
+   ws = new WebSocket(wsHost, wsProtocol);
+   ws.addEventListener('open',      wsOpen);
+   ws.addEventListener('message',   wsMessage);
+   ws.addEventListener('close',     wsClose);
+   ws.addEventListener('error',     wsError);
+   // ...
+}
+</pre>
+         </article>
+
+         <article>
+            <h3>Serversidan</h3>
+            <ul>
+               <li>node.js kör WebSocket-modulen ws och webbservern express</li>
+               <li>ws är den snabbaste och mest grundläggande WebSocket-modulen för node.js, inga massa extra funktioner</li>
+               <li>express för statiskt innehåll, lätt att testa utan att behöva en annan webbserver. Det är nog den mest använda och kända node.js-modulen</li>
+               <li>Serverkoden består av lite hjälpfunktioner samt en connection-listener för WebSockets</li>
+            </ul>
+         </article>
+
+         <article class="nobackground">
+            <h4 style="position: absolute; top: 0px;">En WebSocket-server med ws</h4>
+            <br>
+            <pre>
+var wss = new WebSocketServer({server: server});
+server.listen(port, function () {
+   console.log("Chat server started on port "+port);
+});
+
+wss.on('connection', function (ws) {
+   // Save user in an array
+   var user = new User(...);
+   users.push(user);
+
+   // Got a packet from client
+   ws.on('message', function (message) {
+      // Parse JSON and identify packets
+   });
+
+   // Client got disconnected
+   ws.on('close', function () {
+      users.splice(users.indexOf(user), 1); // Remove user from array
+      // tell others that user left ...
+   });
+
+});
+</pre>
+         </article>
+
+         <article class="nobackground">
+            <h4 style="position: absolute; top: 0px;">Serverns hjälpfunktioner</h4>
+            <br>
+            <pre>
+function sendData(ws, data) {
+   try { ws.send(data); } catch (e) { ws.close(); }
+}
+function broadcastPacket(obj, except) {
+   var data = JSON.stringify(obj);
+   for (var i = 0; i &lt; users.length; i++) {
+      if (users[i].socket !== except &amp;&amp; users[i].ready) {
+         sendData(users[i].socket, data);
+      }
+   }
+}
+function getUserlist() {
+   return users.filter(function (user) { return user.ready; });
+}
+function nickExists(nick) {
+   for (var i = 0; i &lt; users.length; i++) {
+      if (nick.toLowerCase() === users[i].nick.toLowerCase()) {
+         return true;
+      }
+   }
+   return false;
+}
+</pre>
+         </article>
+
+         <article>
+            <h4>Ha samma kod på servern som i webbläsaren</h4>
+            I slutet av modulens kod (User.js):
+            <pre>
+if (typeof module !== 'undefined') {
+   module.exports = User;
+}
+</pre>
+         I node.js:
+         <pre>
+var User = require(__dirname + '/static/js/User.js');
+</pre>
+         I webbläsaren (global scope):
+         <pre>
+&lt;script src="js/User.js"&gt;&lt;/script&gt;
+</pre>
+         </article>
+
+         <article>
+            <h4>Tips för node.js</h4>
+            <ul>
+               <li>Mycket enkel och bra dokumentation om alla medföljande moduler <a target="_blank" href="http://nodejs.org/api/">http://nodejs.org/api/</a></li>
+               <li>Använd npm och kolla i npm-databasen efter moduler för node.js <a target="_blank" href="https://npmjs.org/">https://npmjs.org/</a> (Node Package Manager)</li>
+               <li>Se introduktionsfilmen <a href="http://www.youtube.com/watch?v=jo_B4LTHi3I">http://youtube.com/watch?v=jo_B4LTHi3I</a></li>
+               <li>Ställ frågor i den officiella #node.js-kanalen på irc.freenode.com</li>
+               <li>Kolla hur andra har löst något, läs igenom andras källkod</li>
+            </ul>
+         </article>
+
+         <article class="nobackground">
+            <h4>Andra exempel på WebSockets av mig. Alla bygger node.js</h4>
+            <ul>
+               <li><a target="_blank" href="http://djazz.mine.nu/apps/Epsile/">http://djazz.mine.nu/apps/Epsile/</a><br>Chat with strangers (Omegle clone)</li>
+               <li><a target="_blank" href="http://djazz.mine.nu/apps/draw/">http://djazz.mine.nu/apps/draw/</a><br>Draw with strangers (SVG)</li>
+               <li><a target="_blank" href="http://djazz.mine.nu:8010/">http://djazz.mine.nu:8010/</a> (WebJCS)<br>En leveleditor med HTML5 Canvas</li>
+               <li><a target="_blank" href="http://djazz.mine.nu/lab/rpi/remote/">http://djazz.mine.nu/lab/rpi/remote/</a><br>Kontrollera en LEGO-robot i realtid (offline)</li>
+               <li><a target="_blank" href="http://djazz.mine.nu/lab/cpuinfo/">http://djazz.mine.nu/lab/cpuinfo/</a><br>Systemövervakare för Raspberry Pi</li>
+               <li><a target="_blank" href="https://github.com/daniel-j/jj2dedicated">https://github.com/daniel-j/jj2dedicated</a><br>Adminpanel som använder inloggning med WebSockets och SQLite som databas.</li>
+            </ul>
+         </article>
+
+         <article class="nobackground">
+            <h4>Andra coola JavaScript/HTML5-demos</h4>
+            <ul>
+               <li><a target="_blank" href="http://labs.dinahmoe.com/plink/">http://labs.dinahmoe.com/plink/</a><br>Spela musik med andra i realtid (WebSockets)</li>
+               <li><a target="_blank" href="http://rumpetroll.com/">http://rumpetroll.com/</a><br>Simma runt i havet och chatta med andra (WebSockets)</li>
+               <li><a target="_blank" href="http://djazz.mine.nu/lab/minecraft_items/">http://djazz.mine.nu/lab/minecraft_items/</a><br>Minecraft-Steve som springer från en creeper i 3D (Three.js)</li>
+               <li><a target="_blank" href="http://djazz.mine.nu/lab/Zelda/">http://djazz.mine.nu/lab/Zelda/</a><br>Ett enkelt 2D Zelda-spel (Canvas)</li>
+               <li><a target="_blank" href="http://jazzjackrabbit.net/DJ/WebJJ2/">http://jazzjackrabbit.net/DJ/WebJJ2/</a><br>2D plattformsspel (Canvas)</li>
+               <li><a target="_blank" href="http://djazz.mine.nu/apps/analyzer/">http://djazz.mine.nu/apps/analyzer/</a>, <a target="_blank" href="http://djazz.mine.nu/lab/audiostream/">http://djazz.mine.nu/lab/audiostream/</a><br>Analysera ljud från ljudfil i realtid med JavaScript (Web Audio API)</li>
+            </ul>
+         </article>
+
+         <article>
+            <h3>Tack för mig :)</h3>
+            <h4>Källkoden för chattprogrammet och detta bildspelet:</h4>
+            <h1 style="font-size: 47px"><a href="https://github.com/daniel-j/node-ws-chat">https://github.com/daniel-j/node-ws-chat</a></h1>
+         </article>
+
+
+         <!--<article class='smaller'>
+            <h3>
+               Simple slide with header and text (small font)
+            </h3>
+            <p>
+               This is a slide with just text. This is a slide with just text.
+               This is a slide with just text. This is a slide with just text.
+               This is a slide with just text. This is a slide with just text.
+            </p>
+            <p>
+               There is more text just underneath with a <code>code sample: 5px</code>.
+            </p>
+         </article>
+
+         <article>
+            <h3>
+               Slide with bullet points and a longer title, just because we
+               can make it longer
+            </h3>
+            <ul>
+               <li>
+                  Use this template to create your presentation
+               </li>
+               <li>
+                  Use the provided color palette, box and arrow graphics, and
+                  chart styles
+               </li>
+               <li>
+                  Instructions are provided to assist you in using this
+                  presentation template effectively
+               </li>
+               <li>
+                  At all times strive to maintain Google's corporate look and feel
+               </li>
+            </ul>
+         </article>
+
+         <article>
+            <h3>
+               Slide with bullet points that builds
+            </h3>
+            <ul class="build">
+               <li>
+                  This is an example of a list
+               </li>
+               <li>
+                  The list items fade in
+               </li>
+               <li>
+                  Last one!
+               </li>
+            </ul>
+
+            <div class="build">
+               <p>Any element with child nodes can build.</p>
+               <p>It doesn't have to be a list.</p>
+            </div>
+         </article>
+
+         <article class='smaller'>
+            <h3>
+               Slide with bullet points (small font)
+            </h3>
+            <ul>
+               <li>
+                  Use this template to create your presentation
+               <li>
+                  Use the provided color palette, box and arrow graphics, and
+                  chart styles
+               <li>
+                  Instructions are provided to assist you in using this
+                  presentation template effectively
+               <li>
+                  At all times strive to maintain Google's corporate look and feel
+            </ul>
+         </article>
+
+         <article>
+            <h3>
+               Slide with a table
+            </h3>
+            
+            <table>
+               <tr>
+                  <th>
+                     Name
+                  <th>
+                     Occupation
+               <tr>
+                  <td>
+                     Luke Mahé
+                  <td>
+                     V.P. of Keepin’ It Real
+               <tr>
+                  <td>
+                     Marcin Wichary
+                  <td>
+                     The Michael Bay of Doodles
+            </table>
+         </article>
+         
+         <article class='smaller'>
+            <h3>
+               Slide with a table (smaller text)
+            </h3>
+            
+            <table>
+               <tr>
+                  <th>
+                     Name
+                  <th>
+                     Occupation
+               <tr>
+                  <td>
+                     Luke Mahé
+                  <td>
+                     V.P. of Keepin’ It Real
+               <tr>
+                  <td>
+                     Marcin Wichary
+                  <td>
+                     The Michael Bay of Doodles
+            </table>
+         </article>
+         
+         <article>
+            <h3>
+               Styles
+            </h3>
+            <ul>
+               <li>
+                  <span class='red'>class="red"</span>
+               <li>
+                  <span class='blue'>class="blue"</span>
+               <li>
+                  <span class='green'>class="green"</span>
+               <li>
+                  <span class='yellow'>class="yellow"</span>
+               <li>
+                  <span class='black'>class="black"</span>
+               <li>
+                  <span class='white'>class="white"</span>
+               <li>
+                  <b>bold</b> and <i>italic</i>
+            </ul>
+         </article>
+         
+         <article>
+            <h2>
+               Segue slide
+            </h2>
+         </article>
+
+         <article>
+            <h3>
+               Slide with an image
+            </h3>
+            <p>
+               <img style='height: 500px' src='images/example-graph.png'>
+            </p>
+            <div class='source'>
+               Source: Sergey Brin
+            </div>
+         </article>
+
+         <article>
+            <h3>
+               Slide with an image (centered)
+            </h3>
+            <p>
+               <img class='centered' style='height: 500px' src='images/example-graph.png'>
+            </p>
+            <div class='source'>
+               Source: Larry Page
+            </div>
+         </article>
+
+         <article class='fill'>
+            <h3>
+               Image filling the slide (with optional header)
+            </h3>
+            <p>
+               <img src='images/example-cat.jpg'>
+            </p>
+            <div class='source white'>
+               Source: Eric Schmidt
+            </div>
+         </article>
+
+         <article>
+            <h3>
+               This slide has some code
+            </h3>
+            <section>
+            <pre>
+&lt;script type='text/javascript'&gt;
+   // Say hello world until the user starts questioning
+   // the meaningfulness of their existence.
+   function helloWorld(world) {
+      for (var i = 42; --i &gt;= 0;) {
+         alert('Hello ' + String(world));
+      }
+   }
+&lt;/script&gt;
+&lt;style&gt;
+   p { color: pink }
+   b { color: blue }
+   u { color: 'umber' }
+&lt;/style&gt;
+</pre>
+            </section>
+         </article>
+         
+         <article class='smaller'>
+            <h3>
+               This slide has some code (small font)
+            </h3>
+            <section>
+            <pre>
+&lt;script type='text/javascript'&gt;
+   // Say hello world until the user starts questioning
+   // the meaningfulness of their existence.
+   function helloWorld(world) {
+      for (var i = 42; --i &gt;= 0;) {
+         alert('Hello ' + String(world));
+      }
+   }
+&lt;/script&gt;
+&lt;style&gt;
+   p { color: pink }
+   b { color: blue }
+   u { color: 'umber' }
+&lt;/style&gt;
+</pre>
+            </section>
+         </article>
+         
+         <article>
+            <q>
+               The best way to predict the future is to invent it.
+            </q>
+            <div class='author'>
+               Alan Kay
+            </div>
+         </article>
+         
+         <article class='smaller'>
+            <q>
+               A distributed system is one in which the failure of a computer 
+               you didn’t even know existed can render your own computer unusable.
+            </q>
+            <div class='author'>
+               Leslie Lamport
+            </div>
+         </article>
+         
+         <article class='nobackground'>
+            <h3>
+               A slide with an embed + title
+            </h3>
+            
+            <iframe src='http://www.google.com/doodle4google/history.html'></iframe>
+         </article>
+
+         <article class='nobackground'>
+            <iframe src='http://www.google.com/doodle4google/history.html'></iframe>
+         </article>
+
+         <article class='fill'>
+            <h3>
+               Full-slide embed with (optional) slide title on top
+            </h3>
+            <iframe src='http://www.google.com/doodle4google/history.html'></iframe>
+         </article>
+         
+         <article>
+            <h3>
+               Thank you!
+            </h3>
+            
+            <ul>
+               <li>
+                  <a href='http://www.google.com'>google.com</a>
+            </ul>
+         </article>-->
+
+      </section>
+
+   </body>
+</html>

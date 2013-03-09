@@ -1,0 +1,284 @@
+
+body {
+	padding: 0px;
+	margin: 0px;
+	left: 0px;
+	right: 0px;
+	top: 0px;
+	bottom: 0px;
+	position: fixed;
+	overflow: hidden;
+	background-color: #46483E;
+	color: #EEE;
+	font-family: "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", Verdana, Tahoma, sans-serif;
+	border-top: 6px solid #8CC84B;
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	user-select: none;
+	font-size: 13px;
+	line-height: 100%;
+}
+
+h1, h2, h3, h4 {
+	color: #D2D8BA;
+}
+h1 {
+	font-size: 250%;
+}
+h1, h2 {
+	font-family: helvetica, sans-serif;
+}
+
+a {
+	text-decoration: none;
+	border: none;
+	color: #690;
+}
+a:hover {
+	color: white;
+}
+
+input[type=text] {
+	border: 3px solid #9A9F8B;
+	background-color: #585E4A;
+	border-radius: 2px;
+	padding: 0px 4px;
+	color: #EEE;
+	font-size: 14px;
+	height: 32px;
+	-webkit-box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	box-sizing: border-box;
+}
+input[type=text][disabled] {
+	color: #CCC;
+}
+input[type=text]:focus {
+	outline: none;
+	border-color: #8BC84B;
+}
+input[type=text]::-webkit-input-placeholder {
+	color: #9A9F8B;
+}
+input[type=text]:-moz-placeholder {
+	color: #9A9F8B;
+}
+input[type=text]:focus::-webkit-input-placeholder {
+	color: transparent;
+}
+input[type=text]:focus:-moz-placeholder {
+	color: transparent;
+}
+
+input[type=submit], button {
+	background-color: #8BC84B;
+	display: inline-block;
+	border: none;
+	color: #46483E;
+	border-radius: 2px;
+	line-height: 15px;
+	height: 32px;
+	padding: 0px 15px;
+	font-weight: bold;
+	margin: 2px;
+	font-size: 14px;
+	font-family: helvetica, sans-serif;
+	-webkit-transition: .2s background-color ease-in-out;
+	-moz-transition: .2s background-color ease-in-out;
+	-ms-transition: .2s background-color ease-in-out;
+	-o-transition: .2s background-color ease-in-out;
+	transition: .2s background-color ease-in-out;
+	-webkit-box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	box-sizing: border-box;
+}
+input[type=submit]:hover, button:hover {
+	background-color: #73a53e;
+}
+input[type=submit][disabled], button[disabled] {
+	background-color: #9A9F8B;
+	color: #585E4A;
+}
+
+.view {
+	position: absolute;
+	width: 100%;
+	height: 100%;
+	left: 0%;
+	top: 0%;
+	-webkit-transition: left .3s ease-in-out, top .3s ease-in-out, opacity .3s ease-in-out;
+	-moz-transition: left .3s ease-in-out, top .3s ease-in-out, opacity .3s ease-in-out;
+	-ms-transition: left .3s ease-in-out, top .3s ease-in-out, opacity .3s ease-in-out;
+	-o-transition: left .3s ease-in-out, top .3s ease-in-out, opacity .3s ease-in-out;
+	transition: left .3s ease-in-out, top .3s ease-in-out, opacity .3s ease-in-out;
+	overflow: auto;
+	opacity: 0;
+}
+.view.active {
+	opacity: 1;
+}
+.view.left {
+	left: -100%;
+	opacity: 0;
+}
+.view.right {
+	left: 100%;
+	opacity: 0;
+}
+.view.top {
+	top: -100%;
+	opacity: 0;
+}
+.view.bottom {
+	top: 100%;
+	opacity: 0;
+}
+.view.behind {
+	opacity: 0.1;
+}
+
+.centertable {
+	width: 100%;
+	height: 100%;
+	padding: 0px;
+	border-collapse: collapse;
+}
+.centertable > tbody > tr > td {
+	text-align: center;
+	padding: 0px;
+}
+
+.highlight {
+	background-color: #33342D;
+	padding: 20px;
+	margin: 20px 0px;
+}
+#connectView {
+
+}
+#connectView .html5badge {
+	opacity: 0.2;
+	margin: 0px 50px;
+}
+#connectView #inputUsername {
+	width: 180px;
+}
+#connectView #loginForm #loginErrorNode {
+	color: #F33;
+	font-weight: bold;
+	margin-top: 5px;
+}
+#connectView footer {
+	color: rgba(255, 255, 255, 0.3);
+	font-size: 12px;
+}
+#connectView footer a {
+	border-bottom: 1px dotted #690;
+	color: #878B78;
+}
+#connectView footer a:hover {
+	color: white;
+}
+
+#chatView #chatContainer {
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	right: 150px;
+	bottom: 52px;
+	overflow: auto;
+	padding: 10px;
+	-webkit-user-select: all;
+	-moz-user-select: all;
+	user-select: all;
+	font-size: 14px;
+	line-height: 115%;
+}
+
+#chatView #chatContainer .post {
+	white-space: nowrap;
+	margin-top: 2px;
+}
+#chatView #chatContainer .post .timestamp {
+	display: inline-block;
+	color: rgba(255, 255, 255, 0.5);
+	width: 52px;
+}
+#chatView #chatContainer .post .nick {
+	color: rgba(255, 255, 255, 0.8);
+	padding-right: 7px;
+	font-weight: bold;
+}
+#chatView #chatContainer .post .nick:before, #chatView #chatContainer .post .nick:after {
+	color: rgba(255, 255, 255, 0.3);
+	font-weight: normal;
+}
+#chatView #chatContainer .post .nick:before {
+	content: "<";
+}
+#chatView #chatContainer .post .nick:after {
+	content: ">";
+}
+#chatView #chatContainer .post .message {
+	padding-right: 20px;
+}
+#chatView #chatContainer .post.console .message {
+	color: rgba(255, 255, 255, 0.6);
+}
+#chatView #chatContainer .post.console.error .message {
+	font-weight: bold;
+	color: #F33;
+}
+
+#chatView #userlist {
+	position: absolute;
+	right: 0px;
+	top: 0px;
+	bottom: 52px;
+	width: 144px;
+	border-left: 6px solid #33342D;
+	padding: 3px 0px;
+	-webkit-user-select: all;
+	-moz-user-select: all;
+	user-select: all;
+}
+#chatView #userlist .userlistitem {
+	padding: 2px;
+	padding-left: 3px;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	overflow: hidden;
+	color: rgba(255, 255, 255, 0.7);
+	font-size: 14px;
+}
+#chatView #userlist .userlistitem:nth-child(2n) {
+	background-color: rgba(0, 0, 0, 0.15);
+}
+#chatView #chatForm {
+	position: absolute;
+	bottom: 0px;
+	left: 0px;
+	right: 0px;
+	margin: 0px;
+	padding: 0px;
+	height: 52px;
+}
+#chatView #inputChatWrapper {
+	position: absolute;
+	left: 10px;
+	right: 100px;
+	bottom: 10px;
+}
+#chatView #inputChat {
+	width: 100%;
+	display: block;
+	line-height: 100%;
+	font-size: 16px;
+}
+#chatView #submitChat {
+	position: absolute;
+	right: 10px;
+	bottom: 10px;
+	margin: 0px;
+	width: 80px;
+}
