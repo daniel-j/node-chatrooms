@@ -147,7 +147,11 @@ wss.on('connection', function (ws) {
 
 			}
 		}
-
+		// Ready = user is visible in userlist and can send/recieve chat
+		// It is so that the user dont recieve chat before getting the join confirmation and userlist
+		// Page load = connect to the default room? Without being visible?
+		// He dont need a nick until he can chat. yeah hmm. people in the chat cant know who's "spying"?
+		// I like the irc way.
 		if (user.ready) {
 
 			if (typeof data.chat !== 'undefined') {

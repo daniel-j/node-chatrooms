@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		<title>Dynamic Chat Rooms with Node.JS and socket.io - Example</title>
+		<link rel="stylesheet" type="text/css" href="cake.generic.css" />	
+	</head>
+	<body>
+		<div id="container">
+			<div id="header">
+				<h1>Try this out =)</h1>
+			</div>
+			<div id="content">
+				<div class="gathers view">
+					<h2>Gather vom 02.03.2013 16:28:00</h2>
+					<dl>
+						<input type="hidden" id="GatherGameId" value="6">
+						<input type="hidden" id="GatherGameKey" value="2CKq0ETOe8Ug1Ff4">
+						<dt>Spiel</dt>
+						<dd>
+							CS 1.6		</dd>
+						<dt>Spielmodus</dt>
+						<dd>
+							5on5		</dd>
+						<dt>Anzahl Spieler</dt>
+						<dd>
+							<span id="currentPlayers">0</span> / <span id="maxPlayers">10</span>
+						</dd>
+						<dt>Aktuelle Spieler</dt>
+						<dd>
+							<ul id="currenPlayerList">
+								<li style="float:left;">Team1
+									<ul id="currenPlayerListTeam1" data-max="5">
+									</ul>
+								</li>
+								<li style="float:left;">Team2
+									<ul id="currenPlayerListTeam2" data-max="5">
+									</ul>
+								</li>
+							</ul>
+							&nbsp;
+						</dd>
+						<dt>Bereite Spieler</dt>
+						<dd>
+							<span id="readyPlayers"> - </span>
+						</dd>
+						<dt>Chat</dt>
+						<dd>
+							<div id="log" style="height:250px;overflow:auto;"><ul></ul></div>
+							<div id="console">
+								<input type="text" id="entry" />
+							</div>
+						</dd>
+					</dl>
+				</div>
+				<div class="actions">
+					<h3>Optionen</h3>
+					<ul>
+						<li><a href="/GSHGather/gathers">Gatherliste ansehen</a></li>
+					</ul>
+				</div>
+			</div>
+			<div id="footer">
+			</div>
+		</div>
+		<script type="text/javascript" src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
+		<script type="text/javascript">
+			//<![CDATA[
+			var gatherid = "6";
+			var gatherkey = "2CKq0ETOe8Ug1Ff4";
+			var username = "D"+Math.floor(Math.random()*1000);
+			var currentTeam = null;
+			//]]>
+		</script>
+		<script type="text/javascript" src="http://77.21.169.194:5000/socket.io/socket.io.js"></script>
+		<script type="text/javascript" src="client.js"></script>
+
+	</body>
+</html>
