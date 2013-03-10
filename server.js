@@ -5,7 +5,6 @@ var port = 8080;
 
 var http = require('http');
 var express = require('express');
-var WebSocketServer = require('ws').Server;
 var User = require(__dirname + '/static/js/User.js');
 
 //var reqjs = require('requirejs');
@@ -18,7 +17,7 @@ var server = http.createServer(app);
 server.listen(port, function () {
 	console.log("Chat server started on port "+port);
 });
-var wss = new WebSocketServer({server: server});
+var io = require('socket.io').listen(server);
 
 var users = [];
 
@@ -72,25 +71,17 @@ function fixNick(nick) {
 	return nick.trim();
 }
 
-wss.on('connection', function (ws) {
+io.sockets.on('connection', function (socket) {
 
-	ws._socket.setTimeout(60*1000);
+	console.log("CONNECT");
 
-	ws._socket.once('timeout', function () {
-		console.log('TIMEOUT!');
-		ws.close();
-	});
+	var user = new User({socket: socket});
 
-	console.log("CONNECT protocol: "+ws.protocol+" version: "+ws.protocolVersion+" supports: "+ws.supports+" origin: "+ws.upgradeReq.headers.origin);
+	socket.on('nick', function (nick) {
+		if (nick.length > 0) {
 
-	var user = new User({socket: ws});
-
-	function handleData(data) {
-
-		if (typeof data.nick !== 'undefined' && data.nick.length > 0) {
-
-			// Remove surrounding whitewpace.. might add more limitations later on
-			var nick = fixNick(data.nick);
+			// Remove surrounding whitespace.. might add more limitations later on, such as only alphanumeric
+			nick = fixNick(nick);
 
 			if (!user.ready) { // New user
 				
@@ -99,29 +90,28 @@ wss.on('connection', function (ws) {
 				if (nickExists(nick)) {
 
 					// sendError closes socket
-					sendError(ws, "Nick is in use");
-					ws.close();
+					sendError(socket, "Nick is in use");
+					socket.close();
 					return;
 
 				} else {
 					
 					// Save nick
-					user.update({nick: nick, ready: true});
+					user.update({
+						nick: nick,
+						ready: true
+					});
 
 					users.push(user);
 
 					console.log(nick+' joined');
 
 					// Send userlist and new nick to joining user
-					sendPacket(ws, {
-						nick: user.nick,
-						userlist: getUserlist()
-					});
+					socket.emit('nick', user.nick);
+					socket.emit('userlist', getUserlist());
 
 					// Send join notification to all other users
-					broadcastPacket({
-						join: user
-					}, ws);
+					socket.broadcast.emit('join', user);
 				}
 
 			} else { // User changed nick
@@ -130,75 +120,53 @@ wss.on('connection', function (ws) {
 
 					user.update({nick: nick});
 
-					// Notify other users
-					broadcastPacket({
-						update: {
-							nick: nick
-						},
+					// Notify all users
+					io.sockets.emit('update', {
+						nick: nick,
 						index: users.indexOf(user)
 					});
 
 
 				} else { // Nick exists
 					
-					sendConsole(ws, "<strong>Nick is in use</strong>");
+					sendConsole(socket, "<strong>Nick is in use</strong>");
 
 				}
 
 			}
 		}
-		// Ready = user is visible in userlist and can send/recieve chat
-		// It is so that the user dont recieve chat before getting the join confirmation and userlist
-		// Page load = connect to the default room? Without being visible?
-		// He dont need a nick until he can chat. yeah hmm. people in the chat cant know who's "spying"?
-		// I like the irc way.
-		if (user.ready) {
+	});
 
+	function handleData(data) {
+
+		
+
+		if (user.ready) {
 			if (typeof data.chat !== 'undefined') {
 				var message = data.chat;
-				broadcastPacket({
-					chat: message,
+				io.sockets.emit('chat', {
+					message: message,
 					timestamp: new Date(),
 					index: users.indexOf(user)
 				});
 			}
-	
 		}
 	}
 
 	// Got a packet from client
-	ws.on('message', function (message, flags) {
+	socket.on('message', function (data) {
 
-		console.log("RECIEVED from "+(user.nick || 'guest')+":", message);
-
-		var data;
-
-		// Invalid JSON will not crash the server
-		try {
-			data = JSON.parse(message);
-		} catch (e) {
-			var err = "JSON error "+message+" "+e.toString();
-			console.log(err);
-
-			sendError(ws, err);
-		}
-
-		// Try-catch statements deoptimizes, handle data in other function
-		if (data) {
-			handleData(data);
-		}
+		console.log("RECIEVED from "+(user.nick || 'guest')+":", data.toString());
 		
-
+		handleData(data);
 	});
 
 	// Client got disconnected
-	ws.on('close', function () {
+	socket.on('disconnect', function () {
 		console.log("CLOSE "+(user.nick || 'guest'));
 		var index = users.indexOf(user);
 		if (user.ready && index !== -1) {
-			broadcastPacket({
-				leave: index
-			}, ws);
+			socket.broadcast.emit('left', index);
 			console.log(user.nick+' left');
 		}
 
@@ -206,7 +174,7 @@ wss.on('connection', function (ws) {
 		users.splice(index, 1);
 	});
 	
-	ws.on('error', function () {
+	socket.on('error', function () {
 		console.log('ERROR', arguments);
 	});
 });
