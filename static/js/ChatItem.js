@@ -19,7 +19,7 @@ var ChatItem = (function () {
 
 		this.timestampNode = document.createElement('span');
 		this.timestampNode.classList.add('timestamp');
-		this.timestampNode.textContent = zeroFill(this.timestamp.getHours())+':'+zeroFill(this.timestamp.getMinutes());
+		this.timestampNode.textContent = zeroFill(this.timestamp.getHours())+':'+zeroFill(this.timestamp.getMinutes())+':'+zeroFill(this.timestamp.getSeconds());
 
 		this.nickNode = document.createElement('span');
 		this.nickNode.classList.add('nick');

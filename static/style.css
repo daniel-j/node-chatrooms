@@ -13,7 +13,7 @@ body {
 	font-family: "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", Verdana, Tahoma, sans-serif;
 	border-top: 6px solid #8CC84B;
 	-webkit-user-select: none;
-	-moz-user-select: none;
+	/*-moz-user-select: none;*/
 	user-select: none;
 	font-size: 13px;
 	line-height: 100%;
@@ -163,6 +163,10 @@ input[type=submit][disabled], button[disabled] {
 #connectView #inputUsername {
 	width: 180px;
 }
+#connectView #submitLogin {
+	position: relative;
+	top: -1px;
+}
 #connectView #loginForm #loginErrorNode {
 	color: #F33;
 	font-weight: bold;
@@ -189,7 +193,7 @@ input[type=submit][disabled], button[disabled] {
 	overflow: auto;
 	padding: 10px;
 	-webkit-user-select: all;
-	-moz-user-select: all;
+	/*-moz-user-select: all;*/
 	user-select: all;
 	font-size: 14px;
 	line-height: 115%;
@@ -202,7 +206,10 @@ input[type=submit][disabled], button[disabled] {
 #chatView #chatContainer .post .timestamp {
 	display: inline-block;
 	color: rgba(255, 255, 255, 0.5);
-	width: 52px;
+	/*width: 63px;*/
+	padding-right: 5px;
+	border-right: 1px dotted rgba(255, 255, 255, 0.2);
+	margin-right: 5px;
 }
 #chatView #chatContainer .post .nick {
 	color: rgba(255, 255, 255, 0.8);
@@ -239,7 +246,7 @@ input[type=submit][disabled], button[disabled] {
 	border-left: 6px solid #33342D;
 	padding: 3px 0px;
 	-webkit-user-select: all;
-	-moz-user-select: all;
+	/*-moz-user-select: all;*/
 	user-select: all;
 }
 #chatView #userlist .userlistitem {
@@ -282,3 +289,4 @@ input[type=submit][disabled], button[disabled] {
 	margin: 0px;
 	width: 80px;
 }
+

@@ -60,7 +60,9 @@ var ChatManager = (function () {
 
 	ChatManager.prototype.clear = function () {
 		while (this.log.length > 0) {
-			this.chatContainer.removeChild(this.log[0].node);
+			if (this.log[0].node.parentNode === this.chatContainer) {
+				this.chatContainer.removeChild(this.log[0].node);
+			}
 		}
 	}
 

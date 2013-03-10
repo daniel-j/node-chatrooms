@@ -13,6 +13,8 @@ var UserlistItem = (function () {
 		this.nickNode.classList.add('nick');
 		this.node.appendChild(this.nickNode);
 
+		this.rooms = [];
+
 		if (config) {
 			this.update(config);
 		}

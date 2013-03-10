@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 'use strict';
 
-var port = 8080;
+var port = 9000;
 
 var http = require('http');
 var express = require('express');
+var RoomManager = require(__dirname + '/static/js/RoomManager.js');
 var User = require(__dirname + '/static/js/User.js');
 
 //var reqjs = require('requirejs');
@@ -19,45 +20,56 @@ server.listen(port, function () {
 });
 var io = require('socket.io').listen(server);
 
+var roomManager = new RoomManager(io);
+
 var users = [];
 
-function sendData(ws, data) {
-	try {
-		ws.send(data);
-	} catch (e) {
-		console.error("Couldn't send!", e);
-		ws.close();
+// overkill? no, just structue!
+
+// structure:
+/*rooms = {
+	roomName: {
+		users: [user1, user2, user3],
+		states: [settings, true, state for user 3],
+
 	}
+}*/
+// how can a user have different settings in different rooms? other team, ready or not ready..
+// in js objects are references.. if i change one user object in one room, it also changes in the other rooms
+// the user is in. :P we'll figure out that later
+
+
+function sendError(socket, message) {
+	socket.emit('errorMessage', message);
+	//socket.disconnect();
 }
-function sendPacket(ws, obj) {
-	var data = JSON.stringify(obj);
-	sendData(ws, data);
-	console.log("SEND to a user:", data);
-}
-function sendError(ws, message) {
-	sendPacket(ws, {error: message});
-	ws.close();
-}
-function sendConsole(ws, message) {
-	sendPacket(ws, {console: message});
+function sendConsole(socket, message) {
+	socket.emit('console', message);
 }
 
-// Only broadcast to "authenticated" users (user.ready === true)
-function broadcastPacket(obj, except) {
-	var data = JSON.stringify(obj);
-	console.log("BROADCAST SEND:", data);
+// TODO: finish
+function broadcastToRooms(user, type, data) {
+	console.log("BROADCAST TO ROOMS:", type, data);
 	for (var i = 0; i < users.length; i++) {
-		if (users[i].socket !== except && users[i].ready) {
-			sendData(users[i].socket, data);
+		if (users[i].nick !== '') {
+			//console.log(users[i].nick, users[i].rooms.length, user.rooms.length);
+			for (var j = 0; j < user.rooms.length; j++) {
+				if (users[i].rooms.indexOf(user.rooms[j]) !== -1) {
+					//data.room = user.rooms[j];
+					data.room = user.rooms[j].name;
+					users[i].socket.emit(type, data);
+					//console.log("SENT "+type+" TO "+users[i].nick);
+					break; // dont send anymore to this user
+				}
+			}
+			
 		}
 	}
 }
 
-function getUserlist() {
-	return users.filter(function (user) {
-		return user.ready;
-	});
-}
+// will the program run? ;)
+// yay no syntax errors
+
 
 function nickExists(nick) {
 	for (var i = 0; i < users.length; i++) {
@@ -68,22 +80,36 @@ function nickExists(nick) {
 	return false;
 }
 function fixNick(nick) {
-	return nick.trim();
+	// Remove surrounding whitespace.. might add more limitations later on, such as only alphanumeric
+	return nick.trim().replace(/[^a-z0-9\-_]/ig, '');
 }
+
+io.set('log level', 1);
 
 io.sockets.on('connection', function (socket) {
 
-	console.log("CONNECT");
+	//console.log("CONNECT");
 
+	// scoped to user
+	// init code
 	var user = new User({socket: socket});
+	
 
-	socket.on('nick', function (nick) {
-		if (nick.length > 0) {
+	socket.on('joinroom', function (name) {
+		roomManager.joinRoom(name, user);
+	});
 
-			// Remove surrounding whitespace.. might add more limitations later on, such as only alphanumeric
-			nick = fixNick(nick);
+	socket.on('leaveroom', function (name) {
+		roomManager.leaveRoom(name, user);
+	});
 
-			if (!user.ready) { // New user
+	socket.on('nick', function (orig_nick) {
+
+		var nick = fixNick(orig_nick);
+		
+		if (nick.length > 0 && orig_nick === nick) {
+
+			if (user.nick === '') { // New user
 				
 				console.log(nick+' is trying to join');
 
@@ -91,87 +117,92 @@ io.sockets.on('connection', function (socket) {
 
 					// sendError closes socket
 					sendError(socket, "Nick is in use");
-					socket.close();
-					return;
 
 				} else {
 					
 					// Save nick
-					user.update({
-						nick: nick,
-						ready: true
-					});
+					var config = {
+						nick: nick
+					};
+					user.update(config);
+					// dont broadcast here, it's a join
 
 					users.push(user);
 
-					console.log(nick+' joined');
+					console.log(nick+' joined with a valid nickname');
+
+					//roomManager.joinRoom('system', user, {});
 
 					// Send userlist and new nick to joining user
 					socket.emit('nick', user.nick);
-					socket.emit('userlist', getUserlist());
+					//socket.emit('userlist', getUserlist());
 
 					// Send join notification to all other users
-					socket.broadcast.emit('join', user);
+					//socket.broadcast.emit('join', user);
 				}
 
 			} else { // User changed nick
 
 				if (!nickExists(nick)) { // No other user with this nick
 
-					user.update({nick: nick});
+					var oldNick = user.nick;
 
-					// Notify all users
-					io.sockets.emit('update', {
-						nick: nick,
-						index: users.indexOf(user)
+					user.update({nick: nick}); // let's do it here instead
+
+					broadcastToRooms(user, 'update', {
+						newNick: nick,
+						nick: oldNick
 					});
 
+					// Notify all users
+					/*io.sockets.emit('update', {
+						nick: nick,
+						index: users.indexOf(user)
+					});*/
 
 				} else { // Nick exists
 					
 					sendConsole(socket, "<strong>Nick is in use</strong>");
-
 				}
 
 			}
+		} else {
+			sendError(socket, "Invalid nickname. Only alphanumeric characters and - and _");
 		}
 	});
+	
+	socket.on('chat', function (data) {
+		if (user.nick !== '') {
+			var message = data.message;
+			var roomName = data.room;
 
-	function handleData(data) {
-
-		
-
-		if (user.ready) {
-			if (typeof data.chat !== 'undefined') {
-				var message = data.chat;
-				io.sockets.emit('chat', {
-					message: message,
-					timestamp: new Date(),
-					index: users.indexOf(user)
-				});
-			}
+			roomManager.emitToRoom(roomName, 'chat', {
+				message: message,
+				timestamp: new Date(),
+				nick: user.nick, // no index anymore! yay! it will be hard because user have different index in different rooms
+				room: roomName
+			});
 		}
-	}
-
-	// Got a packet from client
-	socket.on('message', function (data) {
-
-		console.log("RECIEVED from "+(user.nick || 'guest')+":", data.toString());
-		
-		handleData(data);
 	});
 
 	// Client got disconnected
 	socket.on('disconnect', function () {
-		console.log("CLOSE "+(user.nick || 'guest'));
+		
 		var index = users.indexOf(user);
-		if (user.ready && index !== -1) {
-			socket.broadcast.emit('left', index);
-			console.log(user.nick+' left');
-		}
 
-		// Remove user from array
-		users.splice(index, 1);
+		if (user.nick !== '') {
+
+			console.log("CLOSE "+(user.nick || 'guest'));
+			
+			console.log(user.nick+' left');
+			broadcastToRooms(user, 'quit', {nick: user.nick});
+			roomManager.leaveAllRooms(user);
+		}
+		
+		if (index !== -1) {
+			// Remove user from array
+			users.splice(index, 1);
+		}
 	});
 	
 	socket.on('error', function () {

@@ -2,21 +2,107 @@
 //require(     ['ViewManager', 'LoginManager', 'UserManager', 'ChatManager'], function ( ViewManager,   LoginManager,   UserManager,   ChatManager ) {
 (function () {
 	'use strict';
-	
-	var wsHost = 'ws://'+document.location.hostname+':8080/';
-	var wsProtocol = 'chat';
 
-	var ws = null;
+	var socket = io.connect('http://'+document.location.host+'/');
+
+	var roomManager = new RoomManager();
+
+	var currentRoom = '';
 	var myNick = '';
 	var isLoggedIn = false;
 	var isOpen = false;
 	var connectHidden = false;
-	var heartbeatTimer = null;
 
 	var views    = new ViewManager();
 	var login    = new LoginManager();
-	var userlist = new UserManager();
 	var chat     = new ChatManager();
+	var userlistContainer = document.getElementById('userlist');
+
+	socket.on('connect', function () {
+		login.failed('');
+		console.log("CONNECTED!");
+		if (myNick !== '') {
+			chat.addConsole("Reconnecting...");
+			socket.emit('nick', myNick);
+		} else {
+			login.disable(false);
+		}
+	});
+
+	socket.on('nick', function (nick) {
+		isLoggedIn = true;
+		if (!connectHidden) {
+			chat.clear();
+		}
+		login.disable();
+		hideConnect();
+		chat.enable();
+		myNick = nick;
+		chat.addConsole("Connected to server");
+		//userlist.clear();
+		roomManager.clearUserlists();
+
+		socket.emit('joinroom', 'default');
+		
+	});
+
+	// You joined a room, different packets
+	socket.on('joinroom', function (info) {
+		console.log('JOINED A ROOM', info);
+		var name = info.room;
+		
+		roomManager.createRoomFromList(name, info.userlist.users);
+
+		changeRoom(name);
+		
+		chat.addConsole('You joined room '+currentRoom);
+	});
+
+	// Someone else joined a room
+	socket.on('join', function (info) {
+		console.log("SOMEONE JOINED");
+		var user = roomManager.joinRoom(info.room, info.user); // Creates a user
+		var room = info.room;
+		chat.addConsole('<strong>'+utils.html2text(user.nick)+'</strong> joined room '+room);
+	});
+
+	// Someone left a room, yeah i guess. check against username? use getByNick
+	// Leaving a room = user still exist, user requested to leave a room
+	socket.on('leave', function (info) {
+
+		var user = roomManager.users[info.nick];
+		console.log("LEAVE:", user);
+		chat.addConsole('<strong>'+utils.html2text(user.nick)+'</strong> left the room '+info.room);
+		roomManager.leaveRoom(info.room, user);
+		if (user.nick === myNick && currentRoom === info.room) {
+			console.log("I left current room", user.rooms);
+			changeRoom(user.rooms[user.rooms.length-1].name);
+		}
+	});
+
+	// Quit = remove user from all rooms
+	socket.on('quit', function (info) {
+		console.log("SOMEONE QUIT");
+		
+		var user = roomManager.users[info.nick];
+		chat.addConsole('<strong>'+utils.html2text(user.nick)+'</strong> left the server');
+		roomManager.leaveAllRooms(user);
+
+	});
+
+	socket.on('chat', function (info) {
+		console.log(info);
+		var timestamp = new Date(info.timestamp);
+		var user = roomManager.getRoomByName(info.room).userlist.getByNick(info.nick);
+		chat.addChat(user, utils.html2text(info.message), timestamp);
+	});
+	socket.on('errorMessage', function (message) {
+		if (isLoggedIn) {
+			chat.addConsole(message, 'error');
+		} else {
+			login.failed(message);
+		}
+	});
 
 	function hideConnect() {
 		views.addStateFor('connect', 'top');
@@ -29,126 +115,75 @@
 		connectHidden = false;
 	}
 
-	function sendPacket(obj) {
-		if (ws && ws.readyState === 1) {
-			ws.send(JSON.stringify(obj));
-			resetHeartbeatTimer();
-			console.log("SENT:", JSON.stringify(obj), obj);
-		} else {
-			throw "Unable to write on socket "+(ws && ws.readyState);
+	function changeRoom(name) {
+		var room = roomManager.getRoomByName(currentRoom);
+		if (room) {
+			var userlistNode = room.userlist.userlist;
+			if (userlistNode.parentNode) {
+				userlistContainer.removeChild(userlistNode);
+			}
 		}
-	}
+		currentRoom = name;
+		room = roomManager.getRoomByName(currentRoom);
 
-	function resetHeartbeatTimer() {
-		stopHeartbeatTimer();
-		heartbeatTimer = setTimeout(sendHeartbeatPacket, 20*1000);
-	}
-	function stopHeartbeatTimer() {
-		clearTimeout(heartbeatTimer);
-	}
-	function sendHeartbeatPacket() {
-		sendPacket({heartbeat: 1});
-		resetHeartbeatTimer();
-	}
-
-	function wsOpen(e) {
-		console.log("CONNECTED");
-		isOpen = true;
-		sendPacket({nick: myNick});
-	}
-	function wsMessage(e) {
-		var data = JSON.parse(e.data);
-		console.log("RECIEVED:", e.data, data);
+		console.log("New room: ", currentRoom, room);
 		
-		if (typeof data.nick !== 'undefined') {
-			if (typeof data.index === 'undefined') { // Your nick/welcome
-				isLoggedIn = true;
-				if (!connectHidden) {
-					chat.clear();
-				}
-				hideConnect();
-				chat.enable();
-				myNick = data.nick;
-
-			} else {
-				// Rename
-			}
-		}
-		if (typeof data.userlist !== 'undefined') {
-			userlist.clear();
-			data.userlist.forEach(function (info) {
-				userlist.addUser(info);
-			});
-			userlist.update();
-		}
-		if (typeof data.join !== 'undefined') {
-			var user = userlist.addUser(data.join);
-			chat.addConsole('<strong>'+utils.html2text(user.nick)+'</strong> joined the room');
-			userlist.update();
-		}
-		if (typeof data.leave !== 'undefined') {
-			var user = userlist.getByIndex(data.leave);
-			chat.addConsole('<strong>'+utils.html2text(user.nick)+'</strong> left the room');
-			userlist.removeUser(data.leave);
-		}
-		if (typeof data.error !== 'undefined') {
-			if (isLoggedIn) {
-				chat.addConsole(data.error, 'error');
-			} else {
-				login.failed(data.error);
-			}
-			
-		}
-		if (typeof data.chat !== 'undefined') {
-			var timestamp = new Date(data.timestamp);
-			var user = userlist.getByIndex(data.index);
-			chat.addChat(user, utils.html2text(data.chat), timestamp);
-		}
+		userlistNode = room.userlist.userlist;
+		
+		userlistContainer.appendChild(userlistNode);
+		chat.addConsole("You are now in room "+currentRoom);
 	}
-	function wsClose(e) {
+	
+	socket.on('disconnect', function () {
 		console.log("DISCONNECTED");
-		ws.removeEventListener('open', 		wsOpen);
-		ws.removeEventListener('message', 	wsMessage);
-		ws.removeEventListener('close', 	wsClose);
-		ws.removeEventListener('error', 	wsError);
-		ws = null;
-		stopHeartbeatTimer();
-		
 		if (isLoggedIn) {
 			chat.disable();
-			chat.addConsole("Disconnected from server ("+e.code+")", 'error');
+			chat.addConsole("Disconnected from server", 'error');
 		} else {
-			if (!isOpen) {
-				login.failed("Unable to connect to server");
-			}
-			
+			login.failed("Unable to connect to server");
 		}
-	}
-	function wsError(e) {
+	});
+
+	socket.on('error', function (e) {
 		//alert("WebSocket error");
-		//console.log(e);
-	}
+		console.log(e);
+	});
 
 	login.loginAttemptCallback = function (nick) {
-		
-		ws = new WebSocket(wsHost, wsProtocol);
-		ws.addEventListener('open', 	wsOpen);
-		ws.addEventListener('message', 	wsMessage);
-		ws.addEventListener('close', 	wsClose);
-		ws.addEventListener('error', 	wsError);
 
 		myNick = nick;
 
-		console.log("CONNECTING...");
+		console.log("LOGGING IN...");
+
+		socket.emit('nick', myNick);
 
 		isLoggedIn = false;
-		isOpen = false;
 	}
 
 	chat.sendChatCallback = function (message) {
-		sendPacket({
-			chat: message
-		});
+		if (message.indexOf('/join ') === 0) {
+			var name = message.substr(6).trim(); // also, alphanumeric etc...
+			var rooms = roomManager.users[myNick].rooms;
+			for (var i = 0; i < rooms.length; i++) {
+				if (rooms[i].name === name) {
+					break;
+				}
+			}
+			if (i === rooms.length) {
+				socket.emit('joinroom', name);
+			} else {
+				changeRoom(name);
+			}
+
+		} else if(message.indexOf('/leave') === 0) {
+			//var name = message.substr(7).trim();
+			if (currentRoom !== 'default') {
+				socket.emit('leaveroom', currentRoom);
+			}
+		} else {
+			console.log("Sending chat to room " + currentRoom);
+			socket.emit('chat', {room: currentRoom, message: message});
+		}
 	}
 }());
 //});
