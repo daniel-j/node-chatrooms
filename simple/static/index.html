@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML5 Chatroom</title>
+<link rel="stylesheet" href="styles.css">
+
+<section id="welcomescreen">
+	<div id="welcomeframe">
+		<form>
+			Your username<br>
+			<input type=text name="username" id="usernameInput" autofocus>
+			<input type=submit id="joinButton" value="Join">
+			<div id="welcomestatus"></div>
+		</form>
+	</div>
+	<div id="badges"><a href="http://nodejs.org" target="_blank"><img src="nodejs-love.png" align=top vspace=10></a> <a href="http://www.w3.org/html/logo/" target="_blank"><img src="HTML5_Badge_64.png"></a></div>
+</section>
+
+<section id="container">
+	<table width=100% height=100% cellspacing=0 cellpadding=0 border=0>
+	<tr><td colspan=2 height=1 oncontextmenu="return false;">
+	<nav oncontextmenu="return false;">
+		<ul id="tabs" oncontextmenu="return false;">
+			<li class="new" id="addChannel">+</li>
+		</ul>
+	</nav>
+	</td></tr><tr><td>
+		<section id="content">
+			
+		</section>
+	</td><td width=15%>
+		<section id="userlistcontainer">
+			<select size=2 id="userlist">
+				<option>user1</option>
+				<option>user2</option>
+			</select>
+		</section>
+	</section>
+	</td></tr>
+	<tr><td colspan=2 height=1>
+	<section id="chatcontainer">
+		<textarea id="chatinput" wrap="off"></textarea>
+	</section>
+	</td></tr></table>
+	
+</section>
+
+<script src="socket.io/socket.io.js"></script>
+<script src="chatroom.js"></script>
