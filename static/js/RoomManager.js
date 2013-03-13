@@ -8,10 +8,7 @@ if (isServer) {
 //define(function () {
 var RoomManager = (function () {
 	'use strict';
-
-
 	
-
 	// usage: new RoomManager();
 	// it handles the rooms
 
