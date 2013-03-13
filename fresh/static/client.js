@@ -29,8 +29,6 @@
 		}
 	}
 
-	var username = prompt("Username", "") || "guest-"+Date.now();
-
 	var myUser = null;
 	var userManager = null;
 	var myRooms = [];
@@ -49,7 +47,7 @@
 	var joinRoomBtn = document.getElementById('joinRoom');
 	var colorpicker = document.getElementById('colorpicker');
 	var toggleReady = document.getElementById('toggleReady');
-	
+
 	var chatlogsdiv = document.getElementById('chatlogs');
 
 	gatherRoomSettings.settings.allReady = false;
@@ -98,7 +96,7 @@
 	function addChatNode(node, roomName) {
 		console.log(roomName);
 		var log = chatLogs[myRooms.indexOf(roomName)];
-		var wasAtBottom = log.scrollTop === log.scrollHeight - log.offsetHeight;
+		var wasAtBottom = log.scrollTop >= log.scrollHeight - log.offsetHeight - 20;
 		log.appendChild(node);
 		if (wasAtBottom) { // Only scroll if the scrollbar is at bottom
 			log.scrollTop = log.scrollHeight;
@@ -144,7 +142,7 @@
 	socket.on('connect', function () {
 
 		console.log('Connected');
-		socket.emit('login', {nick: username});
+		socket.emit('login', {nick: gatherUsername});
 
 		socket.once('welcome', function (info) {
 			var nick = info.nick;
