@@ -5,6 +5,7 @@ var port = 9003;
 
 var http = require('http');
 var express = require('express');
+var userManager = new require('./static/UserManager');
 
 var app = express();
 app.use(express.static(__dirname + '/static'));
@@ -13,6 +14,21 @@ server.listen(port, function () {
 	console.log("Chat server started on port "+port);
 });
 var io = require('socket.io').listen(server);
+
+// Sort alphabetically by nick
+function userlistSort(u1, u2) {
+	var a = u1.nick.toLowerCase();
+	var b = u2.nick.toLowerCase();
+	if (a < b) return -1;
+	else if (a > b) return 1;
+	else {
+		a = u1.nick;
+		b = u2.nick;
+		if (a < b) return -1;
+		else if (a > b) return 1;
+		else return 0;
+	}
+}
 
 // To use of V8's hidden classes, optimized
 // Else all objects are unique. All user objects share internally the same class in V8.
@@ -38,7 +54,7 @@ function User(config) {
 function UserSettings(config) {
 	config = config || {};
 	this.ready = !!config.ready;
-	this.color = config.color || '';
+	this.color = config.color || 'blue';
 
 	this.update = function (settings) {
 		for (var i in settings) {
@@ -49,199 +65,8 @@ function UserSettings(config) {
 	}
 }
 
-// here we store more global info about users. it share same indexing as nicks
-var users = [];
-var nicks = []; // this is a fast look up usernames
-// userLookup[userIndex] = array of room indicies
-var userLookup = [];
-
-// roomNames[roomIndex] = array of room names
-var roomNames = [];
-// roomLookup[roomIndex] = array of user indicies
-var roomLookup = []; // we need this, to do easy lookup. to see what index the user has in the room
-// localUserSettings[roomIndex][roomUserIndex] = UserSettings object
-var localUserSettings = []; // but it's also roomLookup
-
-// Sort alphabetically by nick
-function userlistSort(u1, u2) {
-	var a = u1.nick.toLowerCase();
-	var b = u2.nick.toLowerCase();
-	if (a < b) return -1;
-	else if (a > b) return 1;
-	else {
-		a = u1.nick;
-		b = u2.nick;
-		if (a < b) return -1;
-		else if (a > b) return 1;
-		else return 0;
-	}
-}
-
-// like String.trim() but on arrays, only null values. Only trim on end
-function trimArrayEnd() {
-	for (var i = 0; i  < arguments.length; i++) {
-		var arr = arguments[i];
-		if (!Array.isArray(arr)) continue;
-		while (arr[arr.length-1] === null && arr.length > 0) {
-			arr.pop();
-		}
-	}
-}
-
-function addUser(user) {
-	if (users.indexOf(user) !== -1 || nicks.indexOf(user.nick) !== -1) throw "User "+user.nick+" already exists"; // User already exists
-	var nullPos = users.indexOf(null); // read more about this below
-	var userIndex = nullPos === -1? users.length : nullPos;
-	
-	users[userIndex] = user;
-	nicks[userIndex] = user.nick;
-	userLookup[userIndex] = [];
-	return true;
-}
-
-function removeUser(user) {
-	// From all rooms. No its better to do another function
-	console.log("Removing user "+user.nick);
-	var userIndex = users.indexOf(user); // user is an instance of User
-	if (userIndex === -1) throw "No such user "+user.nick; // No such user
-
-	var userRooms = userLookup[userIndex];
-
-	for (var r = 0; r < userRooms.length; r++) {
-		var roomIndex = userRooms[r];
-		var roomName = roomNames[roomIndex];
-		var roomUserIndex = roomLookup[roomIndex].indexOf(userIndex);
-		//leaveRoom(user, roomNames[roomIndex]);
-		
-		roomLookup[roomIndex].splice(roomUserIndex, 1);
-		localUserSettings[roomIndex].splice(roomUserIndex, 1);
-
-		// Room is empty, remove it
-		if (roomLookup[roomIndex].length === 0) {
-			console.log("Room "+roomName+" is empty, removing it");
-			if (roomIndex === roomNames.length - 1) {
-				roomNames.pop();
-				roomLookup.pop();
-				localUserSettings.pop();
-			} else {
-				roomNames[roomIndex] = null;
-				roomLookup[roomIndex] = null;
-				localUserSettings[roomIndex] = null;
-			}
-		}
-	}
-
-	if (userIndex === users.length - 1) {
-		nicks.pop();
-		users.pop();
-		userLookup.pop();
-	} else {
-		nicks[userIndex] = null;
-		users[userIndex] = null;
-		userLookup[userIndex] = null;
-	}
-	trimArrayEnd(nicks, users, userLookup, roomNames);
-
-	return true;
-}
-
-function joinRoom(user, roomName) {
-	console.log(user.nick+" is joining room "+roomName);
-	var userIndex = users.indexOf(user);
-	if (userIndex === -1) throw "No such user "+user.nick;
-
-	var roomIndex = roomNames.indexOf(roomName);
-	if (roomIndex === -1) {
-		var nullPos = roomNames.indexOf(null);
-		roomIndex = nullPos === -1? roomNames.length : nullPos; // if it didnt find a hole, return the length of the array.
-		// nullPos is the position of the first null in the array, a hole. If there are no holes, return the length of the array.
-
-		roomNames[roomIndex] = roomName;
-		roomLookup[roomIndex] = [];
-		localUserSettings[roomIndex] = [];
-
-	} else if (roomLookup[roomIndex].indexOf(userIndex) !== -1) {
-		// User is already in room
-		throw "User "+user.nick+" already is in room "+roomName;
-	}
-
-	//var nullPos = roomLookup[roomIndex].indexOf(null);
-	//var roomUserIndex = nullPos === -1? roomLookup[roomIndex].length : nullPos;
-
-	userLookup[userIndex].push(roomIndex);
-	roomLookup[roomIndex].push(userIndex);
-	localUserSettings[roomIndex].push(new UserSettings());
-	return true;
-}
-
-function leaveRoom(user, roomName) {
-	console.log(user.nick+" is leaving room "+roomName);
-	var userIndex = users.indexOf(user);
-	if (userIndex === -1) throw "No such user "+user.nick; // No such user
-	var roomIndex = roomNames.indexOf(roomName);
-	if (roomIndex === -1) throw "No such room "+roomName; // No such room
-	var roomUserIndex = roomLookup[roomIndex].indexOf(userIndex);
-	if (roomUserIndex === -1) throw "User "+user.nick+" is not in room "+roomName; // User is not in room
-	
-	userLookup[userIndex].splice(userLookup[userIndex].indexOf(roomIndex), 1);
-	roomLookup[roomIndex].splice(roomUserIndex, 1);
-	localUserSettings[roomIndex].splice(roomUserIndex, 1);
-
-	
-	// Room is empty, remove it
-	if (roomLookup[roomIndex].length === 0) {
-		console.log("Room "+roomName+" is empty, removing it");
-		if (roomIndex === roomNames.length - 1) {
-			roomNames.pop();
-			roomLookup.pop();
-			localUserSettings.pop();
-		} else {
-			roomNames[roomIndex] = null;
-			roomLookup[roomIndex] = null;
-			localUserSettings[roomIndex] = null;
-		}
-	}
-
-	trimArrayEnd(roomNames, roomLookup, localUserSettings);
-	return true;
-}
-
-function isUserInRoom(user, roomName) {
-	var userIndex = users.indexOf(user);
-	if (userIndex === -1) throw "No such user "+user.nick; // No such user
-	var roomIndex = roomNames.indexOf(roomName);
-	if (roomIndex === -1) throw "No such room "+roomName; // No such room
-	var roomUserIndex = roomLookup[roomIndex].indexOf(userIndex);
-	return roomUserIndex !== -1;
-}
-
-function updateLocalUserSettings(user, roomName, settings) {
-	console.log(user.nick+" is updating settings in room "+roomName);
-	var userIndex = users.indexOf(user);
-	if (userIndex === -1) throw "No such user "+user.nick; // No such user
-	var roomIndex = roomNames.indexOf(roomName);
-	if (roomIndex === -1) throw "No such room "+roomName; // No such room
-	var roomUserIndex = roomLookup[roomIndex].indexOf(userIndex);
-	if (roomUserIndex === -1) throw "User "+user.nick+" is not in room "+roomName; // User is not in room
-
-	localUserSettings[roomIndex][roomUserIndex].update(settings);
-
-	return true;
-}
-
-function renameUser(user, nick) {
-	console.log("Renaming "+user.nick+" to "+nick);
-	var userIndex = users.indexOf(user);
-	if (userIndex === -1) throw "No such user "+user.nick; // No such user
-
-	user.nick = nick;
-	nicks[userIndex] = nick;
-	return true;
-}
-
-
 // to see if the structure works, before using it with sockets
-var djazz = new User({nick: 'djazz'});
+/*var djazz = new User({nick: 'djazz'});
 var jammsen = new User({nick: 'jammsen'});
 var admin = new User({nick: 'admin'});
 
@@ -281,43 +106,67 @@ updateLocalUserSettings(jammsen, 'A', {color: 'green'});
 removeUser(jammsen);
 
 
-removeUser(djazz);
+removeUser(djazz);*/
 
 
 
 // All rooms are empty and there are no users at this point
 
 
-console.log('users', users);
+/*console.log('users', users);
 console.log('nicks', nicks);
 console.log('roomNames', roomNames);
 console.log('userLookup', userLookup);
 console.log('roomLookup', roomLookup);
-console.log('localUserSettings', localUserSettings);
+console.log('localUserSettings', localUserSettings);*/
 
 
 // List users in room "Room1", sort it by nick, return the userlist with user object and local settings
 // I need to read up on array methods, brb
-roomNames.forEach(function (name, id) {
+userManager.roomNames.forEach(function (name, id) {
 	if (name === null) return;
-	console.log("Users in room "+name+":", (roomLookup[id] || [])
+	console.log("Users in room "+name+":", (userManager.roomLookup[id] || [])
 		.filter(function (userIndex) {
 			return typeof userIndex === 'number';
 		})
 		.map(function (userIndex) {
-			return users[userIndex];
+			return userManager.users[userIndex];
 		})
 		.sort(userlistSort)
 		.map(function (user) {
-			var userIndex = users.indexOf(user);
+			var userIndex = userManager.users.indexOf(user);
 			return user.nick;
-			return {nick: user.nick, settings: localUserSettings[id][roomLookup[id].indexOf(userIndex)]}
+			return {nick: user.nick, settings: userManager.localUserSettings[id][userManager.roomLookup[id].indexOf(userIndex)]}
 		})
 	);
 });
 
-function getUserlist(roomName) {
-	var roomIndex = roomNames.indexOf(roomName);
+function isAllReadyInRoom(roomName, maxPlayers) {
+	var roomIndex = userManager.roomNames.indexOf(roomName);
+	if (roomIndex === -1) throw "No such room"; // No such room
+	var blueCount = 0;
+	var redCount = 0;
+	for (var i = 0; i < userManager.roomLookup[roomIndex].length; i++) {
+		var userIndex = userManager.roomLookup[roomIndex][i];
+		var roomUserIndex = userManager.roomLookup[roomIndex].indexOf(userIndex);
+		var settings = userManager.localUserSettings[roomIndex][roomUserIndex];
+		if (settings.ready) {
+			if (settings.color === 'blue') {
+				blueCount++;
+			} else {
+				redCount++;
+			}
+			if (blueCount >= maxPlayers/2 && redCount >= maxPlayers/2) {
+				return true;
+			}
+		}
+
+	}
+	return false;
+}
+
+function getUserlist(user, roomName) {
+	var roomIndex = userManager.roomNames.indexOf(roomName);
 	if (roomIndex === -1) throw "No such room"; // No such room
 
 	var result = {
@@ -325,92 +174,153 @@ function getUserlist(roomName) {
 		users: []
 	};
 	
-	result.users = (roomLookup[roomIndex] || [])
+	result.users = (userManager.roomLookup[roomIndex] || [])
 		.filter(function (userIndex) {
-			return typeof userIndex === 'number';
+			return typeof userIndex === 'number' && userManager.users[userIndex] !== user;
 		})
 		.map(function (userIndex) {
-			return users[userIndex];
+			return userManager.users[userIndex];
 		})
 		.sort(userlistSort)
 		.map(function (user) {
-			var userIndex = users.indexOf(user);
-			return {user: user, settings: localUserSettings[roomIndex][roomLookup[roomIndex].indexOf(userIndex)]}
+			var userIndex = userManager.users.indexOf(user);
+			return {user: user, settings: userManager.localUserSettings[roomIndex][userManager.roomLookup[roomIndex].indexOf(userIndex)]}
 		});
+	return result;
 }
 
-function broadcastToVisibleUsers(user, type, data) {
-	var currentUserIndex = users.indexOf(user) === -1;
-	if (currentUserIndex) throw "No such user"; // No such user
+function broadcastToVisibleUsers(user, type, data, except) {
+	var currentUserIndex = userManager.users.indexOf(user);
+	if (currentUserIndex === -1) throw "No such user"; // No such user
 	var sentTo = [];
 
-	console.log("BROADCAST TO ROOMS:", type, data);
-	for (var i = 0; i < userLookup[currentUserIndex].length; i++) {
-		var roomIndex = userLookup[userIndex][i];
+	console.log("BROADCAST TO "+user.nick+"'s VISIBLE USERS:", type, data);
+	for (var i = 0; i < userManager.userLookup[currentUserIndex].length; i++) {
+		var roomIndex = userManager.userLookup[currentUserIndex][i];
 
-		//data.room = roomNames[roomName];
 
-		for (var j = 0; j < roomLookup[roomIndex]; j++) {
-			var userIndex = roomLookup[roomIndex][j];
-				
-			if (sentTo.indexOf(userIndex) === -1) {
+
+		for (var j = 0; j < userManager.roomLookup[roomIndex].length; j++) {
+			var userIndex = userManager.roomLookup[roomIndex][j];
+			
+			if (sentTo.indexOf(userIndex) === -1 && userManager.users[userIndex] !== except) {
 				sentTo.push(userIndex);
 
-				users[userIndex].socket.emit(type, data);
+				userManager.users[userIndex].socket.emit(type, data);
+				console.log('Sending to '+userManager.users[userIndex].nick);
 			}
 		}
 	}
 }
 
+function updateRoomReadyState(roomName) {
+	var settings = userManager.getRoomSettings(roomName);
+
+	if (settings.maxPlayers !== undefined) {
+		var newVal = isAllReadyInRoom(roomName, settings.maxPlayers);
+	} else {
+		var newVal = false;
+	}
+
+	if (settings.allReady !== newVal) {
+		settings.allReady = newVal;
+		io.sockets.in(roomName).emit('console', {
+			room: roomName,
+			message: "*** All players are "+(newVal? '':'not ')+'ready ***'
+		});
+	}
+}
+
+var counter = 0;
+
+io.set('log level', 1);
 io.sockets.on('connection', function (socket) {
 
+	
+
+	var hasLoggedIn = false;
+
 	// Can only login once per socket
-	socket.once('login', function (info) {
+	socket.on('login', function (info) {
+		if (hasLoggedIn) return;
 
 		var nick = info.nick;
 
+		// Do isValidNick check here
+		//socket.emit('warning', 'Invalid username');
+		//return;
+		//nick = 'guest-'+(++counter);
+
+		console.log(nick+" logs in from "+socket.handshake.address.address);
 		var user = new User({socket: socket, nick: nick});
 
-		socket.emit('nick', user.nick);
+		if (userManager.addUser(user)) {
+			socket.emit('welcome', {nick: user.nick});
+			hasLoggedIn = true;
 
-		if (addUser(user)) {
+			socket.on('roomsettings', function (info) {
+				var change = info.settings;
+				var roomName = info.room;
+				if (userManager.isUserInRoom(user, roomName)) {
+					console.log("Got room settings!", change);
+					var settings = userManager.roomSettings[userManager.roomNames.indexOf(roomName)];
+					for (var i in change) {
+						if (change.hasOwnProperty(i)) {
+							settings[i] = change[i];
+						}
+					}
+					updateRoomReadyState(roomName);
+					io.sockets.in(roomName).emit('roomsettings', {
+						room: roomName,
+						settings: change
+					});
+				} else {
+					socket.emit('warning', "You are not in this room");
+				}
+			});
 
 			socket.on('joinroom', function (roomName) {
-				if (joinRoom(user, roomName)) {
-					socket.emit('joined', roomName);
+				var settings = new UserSettings();
+				if (userManager.joinRoom(user, roomName, settings)) {
 					// send room's userlist
-					socket.emit('userlist', getUserlist(roomName));
+					var info = getUserlist(user, roomName);
+					info.settings = userManager.roomSettings[userManager.roomNames.indexOf(roomName)];
+					socket.emit('joinedroom', info);
 					// tell others in room that user joins
 					io.sockets.in(roomName).emit('joinroom', {
 						room: roomName,
-						user: user
+						nick: user.nick,
+						settings: settings
 					});
 					socket.join(roomName);
 					
 				} else {
-					socket.emit('error', "You can't join this room");
+					socket.emit('warning', "You can't join this room");
 				}
 			});
 
 			socket.on('leaveroom', function (roomName) {
-				if (leaveRoom(user, roomName)) {
-					socket.emit('left', roomName);
+				if (roomName !== 'system' && userManager.leaveRoom(user, roomName)) {
+					socket.emit('leftroom', roomName);
 					socket.leave(roomName);
 					// tell others in room that user left
 					io.sockets.in(roomName).emit('leaveroom', {
 						room: roomName,
 						nick: user.nick
 					});
+
+					updateRoomReadyState(roomName);
+
 					
 				} else {
-					socket.emit('error', "You can't leave this room");
+					socket.emit('warning', "You can't leave this room");
 				}
 			});
 
 			socket.on('chat', function (info) {
 				var roomName = info.room;
 				var message = info.message;
-				if (isUserInRoom(user, roomName)) {
+				if (userManager.isUserInRoom(user, roomName)) {
 
 					io.sockets.in(roomName).emit('chat', {
 						room: roomName,
@@ -419,56 +329,60 @@ io.sockets.on('connection', function (socket) {
 					});
 
 				} else {
-					socket.emit('error', "You can't chat in a room you are not in");
+					socket.emit('warning', "You can't chat in a room you are not in");
 				}
 			});
 
-			socket.on('upateSettings', function (info) {
+			socket.on('upatesettings', function (info) {
 				var roomName = info.room;
 				var settings = info.settings;
-				if (isUserInRoom(user, roomName)) {
-					updateLocalUserSettings(user, roomName, settings);
-					io.sockets.in(roomName).emit('upateSettings', {
+				if (userManager.isUserInRoom(user, roomName)) {
+					console.log('Updating settings for '+user.nick+' in room '+roomName, settings);
+					userManager.updateLocalUserSettings(user, roomName, settings);
+
+					updateRoomReadyState(roomName);
+
+					io.sockets.in(roomName).emit('upatesettings', {
 						room: roomName,
 						nick: user.nick,
 						settings: settings
 					});
 				} else {
-					socket.emit('error', "You can't update your settings in a room you are not in");
+					socket.emit('warning', "You can't update your settings in a room you are not in");
 				}
 			});
 
 			socket.on('rename', function (nick) {
 				var oldNick = user.nick;
-				if (renameUser(user, nick)) {
+				if (userManager.renameUser(user, nick)) {
 					var newNick = user.nick;
 					broadcastToVisibleUsers(user, 'rename', {
 						oldNick: oldNick,
 						newNick: newNick
 					});
 				} else {
-					socket.emit('error', "Unable to rename");
+					socket.emit('warning', "Unable to rename");
 				}
 			});
 
-			socket.once('disconnect', function () {
-				var rooms = userLookup[users.indexOf(user)]
-					.filter(function (roomIndex) {
-						return typeof userIndex === 'number';
-					})
+			socket.on('disconnect', function () {
+				var rooms = userManager.userLookup[userManager.users.indexOf(user)]
 					.map(function (roomIndex) {
-						return roomNames[roomIndex];
+						var roomName = userManager.roomNames[roomIndex];
+						updateRoomReadyState(roomName);
+						return roomName;
 					});
-				console.log("Disconnect", rooms);
+				console.log(user.nick+" disconnected", rooms);
 
 				broadcastToVisibleUsers(user, 'quit', {
 					nick: user.nick
-				});
+				}, user);
 				
-				removeUser(user);
+				userManager.removeUser(user);
+
 			});
 		} else {
-			socket.emit('error', "Login failed");
+			socket.emit('warning', "Login failed");
 			socket.disconnect();
 		}
 	});

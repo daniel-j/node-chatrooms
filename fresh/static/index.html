@@ -1,0 +1,137 @@
+<!doctype html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Chatroom</title>
+	<style>
+
+	html, body {
+		padding: 0px;
+		margin: 0px;
+	}
+
+	#toolbar {
+		position: absolute;
+		left: 0px;
+		top: 0px;
+		right: 0px;
+		height: 25px;
+		border-bottom: 1px solid black;
+	}
+
+	#chatlogs {
+		position: absolute;
+		left: 0px;
+		right: 100px;
+		top: 26px;
+		bottom: 25px;
+		background-color: white;
+	}
+
+	#chatlogs > div {
+		position: absolute;
+		left: 0px;
+		right: 0px;
+		top: 0px;
+		bottom: 0px;
+		overflow: auto;
+		padding: 5px;
+	}
+
+	#selectWrapper {
+		position: absolute;
+		top: 26px;
+		right: 0px;
+		bottom: 25px;
+		width: 100px;
+		border-left: 1px solid black;
+	}
+
+	#selectUserlistBlue {
+		position: absolute;
+		top: 0px;
+		left: 0px;
+		right: 0px;
+		height: 50%;
+		display: block;
+		background-color: white;
+		border: none;
+		margin: 0px;
+	}
+	#selectUserlistRed {
+		position: absolute;
+		bottom: 0px;
+		left: 0px;
+		right: 0px;
+		height: 50%;
+		display: block;
+		background-color: white;
+		border: none;
+		margin: 0px;
+		box-shadow: inset 0px 1px 0px black;
+	}
+
+	#chatForm {
+		border-top: 1px solid black;
+		position: absolute;
+		left: 0px;
+		right: 0px;
+		bottom: 0px;
+		height: 25px;
+	}
+
+	#chatForm #chatInput {
+		position: absolute;
+		left: 0px;
+		right: 0px;
+		top: 0px;
+		bottom: 0px;
+		border: none;
+	}
+
+	</style>
+</head>
+<body>
+
+
+
+
+
+<div id="toolbar">
+	Current Room: <select id="selectRooms"></select>
+	|
+	<button id="leaveRoom">Leave current room</button>
+	<button id="joinRoom">Join a new room</button>
+	|
+	<select id="colorpicker">
+		<option value="blue">Blue</option>
+		<option value="red">Red</option>
+	</select>
+	<input type="checkbox" id="toggleReady">
+</div>
+
+<div id="chatlogs"></div>
+
+<div id="selectWrapper">
+	<select id="selectUserlistBlue" size=2></select>
+	<select id="selectUserlistRed" size=2></select>
+</div>
+
+<form onsubmit="return false" id="chatForm"><input type=text id="chatInput"></submit></form>
+
+<script>
+
+var gatherRoomSettings = {
+	room: 'bf3',
+	settings: {
+		maxPlayers: 4
+	}
+};
+
+</script>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="UserManager.js"></script>
+<script src="client.js"></script>
+</body>
+</html>

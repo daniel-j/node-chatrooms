@@ -43,7 +43,6 @@
 		roomManager.clearUserlists();
 
 		socket.emit('joinroom', 'default');
-		
 	});
 
 	// You joined a room, different packets
